@@ -1,22 +1,10 @@
 import React, { Component } from 'react';
 import Spinner from '../../../sharedComponents/Spinner';
-import clientsApi from '../../../api/clientsApi';
-import Button from 'react-bootstrap/Button'
+// import clientsApi from '../../../api/clientsApi';
+// import Button from 'react-bootstrap/Button'
 import * as firebase from 'firebase';
 var serviceAccount = require('../../../firebase.json');
-var app = firebase.initializeApp(
-  serviceAccount);
-
-var db = app.firestore();
-db.collection('events').get()
-  .then((snapshot) => {
-    snapshot.forEach((doc) => {
-      console.log(doc.id, '=>', doc.data());
-    });
-  })
-  .catch((err) => {
-    console.log('Error getting documents', err);
-  });
+var app = firebase.initializeApp(serviceAccount);
 
 class Home extends Component {
   constructor() {
@@ -25,9 +13,32 @@ class Home extends Component {
       loading: false,
       loadMoreAppsButton: {
         disable: false
-      }
+      },
+      eventsList: []
     }
     this.handleLoadMoreApps = this.handleLoadMoreApps.bind(this);
+    this.arrOfEvents = [];
+    var db = app.firestore();
+    var first = db.collection('events').orderBy('date', 'asc')
+    // .limit(3);
+
+    first.get()
+      .then((snapshot) => {
+        // Get the last document
+        // var last = snapshot.docs[snapshot.docs.length - 1];
+        snapshot.forEach((doc) => {
+          console.log("fff", doc.data());
+          this.arrOfEvents.push(doc.data())
+        });
+        this.setState((prevState) => ({
+          ...prevState,
+          eventsList: this.arrOfEvents
+        }))
+      })
+      .catch((err) => {
+        console.log('Error getting documents', err);
+      });
+
   }
 
   componentDidMount() {
@@ -58,110 +69,70 @@ class Home extends Component {
     else return null;
   }
   render() {
-    const selfProps = this.props;
     const selfState = this.state;
     return (
-      <div id="listing-cards">
-        <Spinner loading={selfState.loading}></Spinner>
-        <header>
-          <h1>Rasidi Dashboard</h1>
-        </header>
-        <section>
-          <div className="container">
-            <div className="row">
-              {/* <div className="col-12 col-sm-6 col-lg-4">
-                <div className="card bg-light">
-                  <div className="card-body">
-                    <h4 className="card-title">Bologna</h4>
-                    <h6 className="card-subtitle mb-2">Emilia-Romagna Region, Italy</h6>
-                    <p className="card-text">It is the seventh most populous city in Italy, at the heart of a metropolitan area of about one million people. </p>
-                  </div>
-                </div>
-              </div>
-              <div className="col-12 col-sm-6 col-lg-4">
-                <div className="card bg-secondary text-white">
-                  <div className="card-body">
-                    <h4 className="card-title">Oslo</h4>
-                    <h6 className="card-subtitle mb-2">Oslofjord, Norway</h6>
-                    <p className="card-text">Oslo is the economic and governmental centre of Norway. The city is also a hub of Norwegian trade, banking and industry.</p>
-                  </div>
-                </div>
-              </div>
+      <React.Fragment>
+        <Spinner loading={selfState.eventsList.length ? false : true}></Spinner>
+        <div id="listing-cards">
+          <header>
+            <h1>Events Directory (Cairo - Egypt)</h1>
+          </header>
+          <section>
+            <div className="container">
+              {selfState.eventsList.length ? selfState.eventsList.map((one, index) => {
+                return (
+                  <div className="card-media">
+                    <div className="card-media-object-container">
+                      {/* <div className="card-media-object" style="background-image: url(https://s9.postimg.cc/y0sfm95gv/prince_f.jpg);">
+</div> */}
+                      {/* <span className="card-media-object-tag subtle">Selling Fast</span> */}
+                      {/* <ul className="card-media-object-social-list">
+                        <li>
+                          <img alt="" src="https://s10.postimg.cc/3rjjbzcvd/profile_f.jpg" className="" />
+                        </li>
+                        <li>
+                          <img alt="" src="https://s16.postimg.cc/b0j0djh79/profile_0_f.jpg" className="" />
+                        </li>
+                        <li className="card-media-object-social-list-item-additional">
+                          <span>+2</span>
+                        </li>
+                      </ul> */}
+                    </div>
+                    <div className="card-media-body">
+                      <div className="card-media-body-top">
+                        <span className="subtle">{one.date}</span>
+                        <span className="subtle">{one.time}</span>
+                        {/* <div className="card-media-body-top-icons u-float-right">
+                          <svg fill="#888888" height="16" viewBox="0 0 24 24" width="16" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M0 0h24v24H0z" fill="none" />
+                            <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z" />
+                          </svg>
+                          <svg fill="#888888" height="16" viewBox="0 0 24 24" width="16" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z" />
+                            <path d="M0 0h24v24H0z" fill="none" />
+                          </svg>
+                        </div> */}
+                      </div>
+                      <span className="card-media-body-heading">{one.name}: {one.desc}</span>
+                      <div className="card-media-body-supporting-bottom">
+                        <span className="card-media-body-supporting-bottom-text subtle">{one.address}</span>
+                        <span className="card-media-body-supporting-bottom-text subtle u-float-right">{one.ticket_price} EGP</span>
+                      </div>
+                      <div className="card-media-body-supporting-bottom card-media-body-supporting-bottom-reveal">
+                        <span className="card-media-body-supporting-bottom-text subtle">#{one.category}</span>
+                        {/* <a href="#/" className="card-media-body-supporting-bottom-text card-media-link u-float-right">VIEW TICKETS</a> */}
+                      </div>
+                    </div>
+                  </div>)
 
-              <div className="col-12 col-sm-6 col-lg-4">
-                <div className="card bg-dark text-white">
-                  <div className="card-body">
-                    <h4 className="card-title">Berlin</h4>
-                    <h6 className="card-subtitle mb-2">Brandenburg, Germany</h6>
-                    <p className="card-text">Berlin is a world city of culture, politics, media and science. Its economy is based on high-tech firms and the service sector.</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="col-12 col-sm-6 col-lg-4">
-                <div className="card bg-primary text-white">
-                  <div className="card-body">
-                    <h4 className="card-title">Bucharest</h4>
-                    <h6 className="card-subtitle mb-2">Romania</h6>
-                    <p className="card-text">Economically, Bucharest is the most prosperous city in Romania and one of the main industrial centres of Eastern Europe. </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="col-12 col-sm-6 col-lg-4">
-                <div className="card bg-info">
-                  <div className="card-body">
-                    <h4 className="card-title">Madrid</h4>
-                    <h6 className="card-subtitle mb-2">Spain</h6>
-                    <p className="card-text">The city has almost 3.2 million inhabitants and a metropolitan area population of approximately 6.5 million.</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="col-12 col-sm-6 col-lg-4">
-                <div className="card bg-success">
-                  <div className="card-body">
-                    <h4 className="card-title">London</h4>
-                    <h6 className="card-subtitle mb-2">Greater London, England</h6>
-                    <p className="card-text">London is one of the leading global cities in the arts, commerce, education, entertainment, fashion.</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="col-12 col-sm-6 col-lg-4">
-                <div className="card bg-warning">
-                  <div className="card-body">
-                    <h4 className="card-title">Vienna</h4>
-                    <h6 className="card-subtitle mb-2">Austria</h6>
-                    <p className="card-text">Apart from being regarded as the City of Music because of its musical legacy, it is also said to be "The City of Dreams".</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="col-12 col-sm-6 col-lg-4">
-                <div className="card bg-danger text-white">
-                  <div className="card-body">
-                    <h4 className="card-title">Amsterdam</h4>
-                    <h6 className="card-subtitle mb-2">Netherlands</h6>
-                    <p className="card-text">Originating as a small fishing village, Amsterdam became one of the most important ports in the world.</p>
-                  </div>
-                </div>
-              </div> */}
-
-              <div className="col-12 col-sm-6 col-lg-4">
-                <div className="card bg-transparent">
-                  <div className="card-body">
-                    <h4 className="card-title">Vladivostok</h4>
-                    <h6 className="card-subtitle mb-2">Primorsky Krai, Russia</h6>
-                    <p className="card-text">The city is the home port of the Russian Pacific Fleet and the largest Russian port on the Pacific Ocean.</p>
-                  </div>
-                </div>
-              </div>
+              }) : <h4>No events at the moment</h4>}
             </div>
-            <Button id="loadMoreButton" onClick={this.handleLoadMoreApps} disabled={false} variant="primary">Load More</Button>
-          </div>
-        </section>
-      </div>
+          </section>
+          <footer>
+            <h6> Contacts: +201224941368</h6>
+          </footer>
+        </div>
+      </React.Fragment>
     );
   }
 }

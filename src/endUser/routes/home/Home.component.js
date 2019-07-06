@@ -3,56 +3,126 @@ import Spinner from '../../../sharedComponents/Spinner';
 // import clientsApi from '../../../api/clientsApi';
 // import Button from 'react-bootstrap/Button'
 import * as firebase from 'firebase';
+import markerPin from './marker-pin.png';
+import logoIcon from './icon_small.png';
+import Container from 'react-bootstrap/Container';
+import Row from 'react-bootstrap/Row';
+import Col from 'react-bootstrap/Col';
+import Navbar from 'react-bootstrap/Navbar';
+import Image from 'react-bootstrap/Image';
+import CityDropDown from '../../../sharedComponents/CityBranchDropDown';
+import CategoryDropDown from '../../../sharedComponents/CityBranchDropDown';
+
 var serviceAccount = require('../../../firebase.json');
 var app = firebase.initializeApp(serviceAccount);
+var db = app.firestore();
 
 class Home extends Component {
   constructor() {
     super();
     this.state = {
-      loading: false,
+      loading: true,
       loadMoreAppsButton: {
         disable: false
       },
-      eventsList: []
-    }
+      eventsList: [],
+      cityList: [],
+      categoryList: [],
+      organizationList: [],
+      cityToUse: {
+        id: '',
+        toBeUpdated: false,
+        name: ''
+      },
+      categoryToUse: {
+        id: '',
+        toBeUpdated: false,
+        name: ''
+      }
+    };
+    this.handleDropDownFields = this.handleDropDownFields.bind(this);
     this.handleLoadMoreApps = this.handleLoadMoreApps.bind(this);
+    this.handleFilters = this.handleFilters.bind(this);
     this.arrOfEvents = [];
-    var db = app.firestore();
-    var first = db.collection('events').orderBy('date', 'asc')
-    // .limit(3);
+    var eventList = db.collection('event');
+    var cityList = db.collection('city');
+    var categoryList = db.collection('category');
+    var organizationList = db.collection('organization');
 
-    first.get()
-      .then((snapshot) => {
-        // Get the last document
-        // var last = snapshot.docs[snapshot.docs.length - 1];
-        snapshot.forEach((doc) => {
-          console.log("fff", doc.data());
-          this.arrOfEvents.push(doc.data())
+    cityList
+      .get()
+      .then(snapshot => {
+        let list = [];
+        snapshot.forEach(doc => {
+          list.push({ id: doc.id, name: doc.data().name });
         });
-        this.setState((prevState) => ({
+        this.setState(prevState => ({
           ...prevState,
-          eventsList: this.arrOfEvents
-        }))
+          cityList: list
+        }));
       })
-      .catch((err) => {
+      .catch(err => {
         console.log('Error getting documents', err);
       });
 
+    organizationList
+      .get()
+      .then(snapshot => {
+        let list = {};
+        snapshot.forEach(doc => {
+          list[doc.id] = {
+            name: doc.data().name,
+            coords: doc.data().coords
+          };
+        });
+        this.setState(prevState => ({
+          ...prevState,
+          organizationList: list
+        }));
+      })
+      .catch(err => {
+        console.log('Error getting documents', err);
+      });
+
+    categoryList
+      .get()
+      .then(snapshot => {
+        let list = [];
+        snapshot.forEach(doc => {
+          list.push({ id: doc.id, name: doc.data().name });
+        });
+        this.setState(prevState => ({
+          ...prevState,
+          categoryList: list
+        }));
+      })
+      .catch(err => {
+        console.log('Error getting documents', err);
+      });
+
+    eventList
+      .get()
+      .then(snapshot => {
+        snapshot.forEach(doc => {
+          this.arrOfEvents.push(doc.data());
+        });
+        this.setState(prevState => ({
+          ...prevState,
+          eventsList: this.arrOfEvents,
+          loading: false
+        }));
+      })
+      .catch(err => {
+        console.log('Error getting documents', err);
+      });
   }
 
-  componentDidMount() {
-    if (!this.props.listOfDailyApps.length) {
-      this.props.startLoading();
-      this.props.getListOfApps();
-    }
-  }
   handleLoadMoreApps() {
     const selfProps = this.props;
     if (selfProps.appsListTotalPagesNum !== selfProps.appsListCurrentPage) {
       this.props.getListOfApps(this.props.appsListCurrentPage + 1);
     } else {
-      this.setState((prevState) => ({
+      this.setState(prevState => ({
         ...prevState,
         loadMoreAppsButton: {
           ...prevState.loadMoreAppsButton,
@@ -65,73 +135,175 @@ class Home extends Component {
   static getDerivedStateFromProps(nextProps, prevState) {
     if (nextProps.loading !== prevState.loading) {
       return { loading: nextProps.loading };
-    }
-    else return null;
+    } else return null;
   }
+
+  handleDropDownFields = (idx, title) => (key, event) => {
+    const fieldName = event.target.name;
+    if (fieldName === 'city') {
+      this.setState(prevState => ({
+        ...prevState,
+        cityToUse: {
+          id: idx,
+          name: title,
+          toBeUpdated: true
+        }
+      }));
+    } else if (fieldName === 'category') {
+      this.setState(prevState => ({
+        ...prevState,
+        categoryToUse: {
+          id: idx,
+          name: title,
+          toBeUpdated: true
+        }
+      }));
+    }
+  };
+
+  componentDidUpdate() {
+    const { cityToUse, categoryToUse } = this.state;
+    if (
+      (cityToUse.id && cityToUse.toBeUpdated) ||
+      (categoryToUse.id && categoryToUse.toBeUpdated)
+    ) {
+      this.handleFilters();
+    }
+  }
+
+  handleFilters() {
+    const { cityToUse, categoryToUse } = this.state;
+    let collec;
+    if (cityToUse.id && categoryToUse.id) {
+      collec = db
+        .collection('event')
+        .where('city', '==', cityToUse.id)
+        .where('category', '==', categoryToUse.id);
+    } else if (cityToUse.id) {
+      collec = db.collection('event').where('city', '==', cityToUse.id);
+    } else if (categoryToUse.id) {
+      collec = db.collection('event').where('category', '==', categoryToUse.id);
+    }
+    collec
+      .get()
+      .then(snapshot => {
+        const list = [];
+        snapshot.forEach(doc => {
+          list.push(doc.data());
+        });
+        this.setState(prevState => ({
+          ...prevState,
+          eventsList: list,
+          cityToUse: { ...prevState.cityToUse, toBeUpdated: false },
+          categoryToUse: { ...prevState.categoryToUse, toBeUpdated: false }
+        }));
+      })
+      .catch(err => {
+        console.log('Error getting documents', err);
+      });
+  }
+
   render() {
+    const { categoryList, cityList, organizationList } = this.state;
     const selfState = this.state;
+    const dateOptions = {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    };
     return (
       <React.Fragment>
-        <Spinner loading={selfState.eventsList.length ? false : true}></Spinner>
-        <div id="listing-cards">
-          <header>
-            <h1>Events Directory (Cairo - Egypt)</h1>
-          </header>
-          <section>
-            <div className="container">
-              {selfState.eventsList.length ? selfState.eventsList.map((one, index) => {
-                return (
-                  <div className="card-media">
-                    <div className="card-media-object-container">
-                      {/* <div className="card-media-object" style="background-image: url(https://s9.postimg.cc/y0sfm95gv/prince_f.jpg);">
-</div> */}
-                      {/* <span className="card-media-object-tag subtle">Selling Fast</span> */}
-                      {/* <ul className="card-media-object-social-list">
-                        <li>
-                          <img alt="" src="https://s10.postimg.cc/3rjjbzcvd/profile_f.jpg" className="" />
-                        </li>
-                        <li>
-                          <img alt="" src="https://s16.postimg.cc/b0j0djh79/profile_0_f.jpg" className="" />
-                        </li>
-                        <li className="card-media-object-social-list-item-additional">
-                          <span>+2</span>
-                        </li>
-                      </ul> */}
-                    </div>
-                    <div className="card-media-body">
-                      <div className="card-media-body-top">
-                        <span className="subtle">{one.date}</span>
-                        <span className="subtle">{one.time}</span>
-                        {/* <div className="card-media-body-top-icons u-float-right">
-                          <svg fill="#888888" height="16" viewBox="0 0 24 24" width="16" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M0 0h24v24H0z" fill="none" />
-                            <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z" />
-                          </svg>
-                          <svg fill="#888888" height="16" viewBox="0 0 24 24" width="16" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z" />
-                            <path d="M0 0h24v24H0z" fill="none" />
-                          </svg>
-                        </div> */}
-                      </div>
-                      <span className="card-media-body-heading">{one.name}: {one.desc}</span>
-                      <div className="card-media-body-supporting-bottom">
-                        <span className="card-media-body-supporting-bottom-text subtle">{one.address}</span>
-                        <span className="card-media-body-supporting-bottom-text subtle u-float-right">{one.ticket_price} EGP</span>
-                      </div>
-                      <div className="card-media-body-supporting-bottom card-media-body-supporting-bottom-reveal">
-                        <span className="card-media-body-supporting-bottom-text subtle">#{one.category}</span>
-                        {/* <a href="#/" className="card-media-body-supporting-bottom-text card-media-link u-float-right">VIEW TICKETS</a> */}
-                      </div>
-                    </div>
-                  </div>)
+        <Spinner loading={selfState.loading} />
+        <header>
+          <Navbar expand="lg" variant="light">
+            <Navbar.Brand>
+              <Image id="logo-icon" src={logoIcon} fluid />
+              {'Pharos Events'}
+            </Navbar.Brand>
+            <Navbar.Text id="contact-num">
+              <a href="tel:+201224941368">Contact Us</a>
+            </Navbar.Text>
+          </Navbar>
+        </header>
+        <Container fluid={true}>
+          <section style={{ marginTop: '20px' }}>
+            <Row>
+              <Col xs={12} sm={6}>
+                <CityDropDown
+                  currentSelected={this.state.cityToUse.name}
+                  name="city"
+                  list={cityList}
+                  fieldTitle={'City'}
+                  handleItem={this.handleDropDownFields}
+                />
+              </Col>
 
-              }) : <h4>No events at the moment</h4>}
-            </div>
+              <Col xs={12} sm={6}>
+                <CategoryDropDown
+                  currentSelected={this.state.categoryToUse.name}
+                  name="category"
+                  list={categoryList}
+                  fieldTitle={'Category'}
+                  handleItem={this.handleDropDownFields}
+                />
+              </Col>
+            </Row>
           </section>
-          <footer>
-            <h6> Contacts: +201224941368</h6>
-          </footer>
-        </div>
+          <div id="listing-cards">
+            <section>
+              <Row>
+                {selfState.eventsList && selfState.eventsList.length ? (
+                  selfState.eventsList.map((one, index) => {
+                    return (
+                      <Col xs={12} className="card-media">
+                        <div className="card-media-body">
+                          <div className="card-media-body-top">
+                            <span className="subtle">{`${one.time}  |  `}</span>
+                            <span className="subtle">{`${new Date(
+                              one.date
+                            ).toLocaleDateString('en-EG', dateOptions)}`}</span>
+
+                            <span className="eve-location">
+                              <a
+                                href={
+                                  ' https://maps.google.com/?q=' +
+                                  organizationList[one.organization].coords
+                                }
+                              >
+                                <h6>
+                                  {organizationList[one.organization].name}
+                                </h6>
+                                <img
+                                  style={{ width: '25px', float: 'right' }}
+                                  src={markerPin}
+                                  alt="pin-marker"
+                                />
+                              </a>
+                            </span>
+                          </div>
+                          <span className="card-media-body-heading eve-title">
+                            {one.name}
+                          </span>
+                          <span className="card-media-body-supporting-bottom-text subtle">
+                            #{categoryList[one.category]}
+                          </span>
+                          <span className="card-media-body-supporting-bottom-text subtle u-float-right">
+                            {one.ticket_price} EGP
+                          </span>
+                          <div className="card-media-body-heading eve-desc">
+                            {one.desc}
+                          </div>
+                        </div>
+                      </Col>
+                    );
+                  })
+                ) : (
+                  <h4>No events at the moment</h4>
+                )}
+              </Row>
+            </section>
+          </div>
+        </Container>
       </React.Fragment>
     );
   }

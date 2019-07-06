@@ -28,6 +28,7 @@ class Home extends Component {
       eventsList: [],
       cityList: [],
       categoryList: [],
+      categoryListObj: {},
       organizationList: [],
       cityToUse: {
         id: '',
@@ -88,12 +89,15 @@ class Home extends Component {
       .get()
       .then(snapshot => {
         let list = [];
+        let listObj = {};
         snapshot.forEach(doc => {
           list.push({ id: doc.id, name: doc.data().name });
+          listObj[doc.id] = doc.data().name;
         });
         this.setState(prevState => ({
           ...prevState,
-          categoryList: list
+          categoryList: list,
+          categoryListObj: listObj
         }));
       })
       .catch(err => {
@@ -204,7 +208,12 @@ class Home extends Component {
   }
 
   render() {
-    const { categoryList, cityList, organizationList } = this.state;
+    const {
+      categoryList,
+      categoryListObj,
+      cityList,
+      organizationList
+    } = this.state;
     const selfState = this.state;
     const dateOptions = {
       year: 'numeric',
@@ -285,7 +294,7 @@ class Home extends Component {
                             {one.name}
                           </span>
                           <span className="card-media-body-supporting-bottom-text subtle">
-                            #{categoryList[one.category]}
+                            #{categoryListObj[one.category]}
                           </span>
                           <span className="card-media-body-supporting-bottom-text subtle u-float-right">
                             {one.ticket_price} EGP

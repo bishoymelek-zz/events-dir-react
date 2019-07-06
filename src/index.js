@@ -7,11 +7,8 @@ import { Provider } from 'react-redux';
 // Routing (react-router-dom)
 import { BrowserRouter } from 'react-router-dom';
 import store from './store-redux';
-import { PersistGate } from 'redux-persist/integration/react';
-
-// Reset browser styling
-
 import './index.scss';
+
 import 'bootstrap/dist/css/bootstrap.css';
 import App from './App';
 ReactDOM.render(

@@ -7,7 +7,7 @@ const spinner = (props) => {
     display: block;
     margin: 0 auto;
     border-color: red;
-    top:37%;
+    top:3%;
 `;
     if (props.loading)
         return (

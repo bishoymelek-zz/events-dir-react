@@ -1,14 +1,15 @@
 import React, { Component } from 'react';
 import Spinner from '../../../sharedComponents/Spinner';
 // import clientsApi from '../../../api/clientsApi';
-// import Button from 'react-bootstrap/Button'
+import Button from 'react-bootstrap/Button'
 import * as firebase from 'firebase';
-import markerPin from './marker-pin.png';
+// import markerPin from './marker-pin.png';
 import logoIcon from './icon_small.png';
 import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Navbar from 'react-bootstrap/Navbar';
+import Nav from 'react-bootstrap/Nav';
 import Image from 'react-bootstrap/Image';
 import CityDropDown from '../../../sharedComponents/CityBranchDropDown';
 import CategoryDropDown from '../../../sharedComponents/CityBranchDropDown';
@@ -18,9 +19,10 @@ var app = firebase.initializeApp(serviceAccount);
 var db = app.firestore();
 
 class Home extends Component {
-  constructor() {
-    super();
+  constructor(props) {
+    super(props);
     this.state = {
+      hasError: false,
       loading: true,
       loadMoreAppsButton: {
         disable: false
@@ -39,16 +41,17 @@ class Home extends Component {
         id: '',
         toBeUpdated: false,
         name: ''
-      }
+      },
+      lastItemId: null
     };
     this.handleDropDownFields = this.handleDropDownFields.bind(this);
     this.handleLoadMoreApps = this.handleLoadMoreApps.bind(this);
     this.handleFilters = this.handleFilters.bind(this);
     this.arrOfEvents = [];
-    var eventList = db.collection('event');
+    this.eventList = db.collection('event');
     var cityList = db.collection('city');
     var categoryList = db.collection('category');
-    var organizationList = db.collection('organization');
+    var organizationList = db.collection('organizationw');
 
     cityList
       .get()
@@ -73,7 +76,7 @@ class Home extends Component {
         snapshot.forEach(doc => {
           list[doc.id] = {
             name: doc.data().name,
-            coords: doc.data().coords
+            // coords: doc.data().coords
           };
         });
         this.setState(prevState => ({
@@ -104,79 +107,146 @@ class Home extends Component {
         console.log('Error getting documents', err);
       });
 
-    eventList
+    this.eventList
+      .limit(5)
+      .orderBy('date')
       .get()
       .then(snapshot => {
+        let Arr = [];
         snapshot.forEach(doc => {
-          this.arrOfEvents.push(doc.data());
+          Arr.push(doc.data());
         });
         this.setState(prevState => ({
           ...prevState,
-          eventsList: this.arrOfEvents,
-          loading: false
+          eventsList: Arr,
+          loading: false,
+          hasError: false,
+          lastItemId: snapshot.docs[Arr.length - 1]
         }));
       })
       .catch(err => {
+        this.setState(prevState => ({
+          ...prevState,
+          hasError: true,
+        }));
         console.log('Error getting documents', err);
       });
   }
 
   handleLoadMoreApps() {
-    const selfProps = this.props;
-    if (selfProps.appsListTotalPagesNum !== selfProps.appsListCurrentPage) {
-      this.props.getListOfApps(this.props.appsListCurrentPage + 1);
-    } else {
-      this.setState(prevState => ({
-        ...prevState,
-        loadMoreAppsButton: {
-          ...prevState.loadMoreAppsButton,
-          disable: true
-        }
-      }));
-    }
+    const { lastItemId } = this.state;
+    this.eventList
+      .orderBy('date')
+      .limit(5)
+      .startAfter(lastItemId)
+      .get()
+      .then(snapshot => {
+        const Arr = [];
+        snapshot.forEach(doc => {
+          Arr.push(doc.data())
+        });
+        const joined = this.state.eventsList.concat(Arr);
+        this.setState(prevState => ({
+          ...prevState,
+          eventsList: joined,
+          loading: false,
+          hasError: false,
+          lastItemId: snapshot.docs[snapshot.docs.length - 1]
+        }));
+      })
+      .catch(err => {
+        this.setState(prevState => ({
+          ...prevState,
+          hasError: true,
+        }));
+        console.log('Error getting documents', err);
+      });
+
+    // console.log(next);
+
+    // const selfProps = this.props;
+    // if (selfProps.appsListTotalPagesNum !== selfProps.appsListCurrentPage) {
+    //   this.props.getListOfApps(this.props.appsListCurrentPage + 1);
+    // } else {
+    //   this.setState(prevState => ({
+    //     ...prevState,
+    //     loadMoreAppsButton: {
+    //       ...prevState.loadMoreAppsButton,
+    //       disable: true
+    //     }
+    //   }));
+    // }
   }
 
   static getDerivedStateFromProps(nextProps, prevState) {
-    if (nextProps.loading !== prevState.loading) {
-      return { loading: nextProps.loading };
-    } else return null;
+    // if (nextProps.loading !== prevState.loading) {
+    //   return { loading: nextProps.loading };
+    // } else return null;
   }
 
   handleDropDownFields = (idx, title) => (key, event) => {
     const fieldName = event.target.name;
+    const shouldClear = event.target.dataset.clear;
     if (fieldName === 'city') {
-      this.setState(prevState => ({
-        ...prevState,
-        cityToUse: {
-          id: idx,
-          name: title,
-          toBeUpdated: true
-        }
-      }));
+      if (shouldClear) {
+        this.setState(prevState => ({
+          ...prevState,
+          cityToUse: {
+            id: '',
+            name: '',
+            toBeUpdated: true
+          }
+        }));
+      } else {
+        this.setState(prevState => ({
+          ...prevState,
+          cityToUse: {
+            id: idx,
+            name: title,
+            toBeUpdated: true
+          }
+        }));
+      }
     } else if (fieldName === 'category') {
-      this.setState(prevState => ({
-        ...prevState,
-        categoryToUse: {
-          id: idx,
-          name: title,
-          toBeUpdated: true
-        }
-      }));
+      if (shouldClear) {
+        this.setState(prevState => ({
+          ...prevState,
+          categoryToUse: {
+            id: '',
+            name: '',
+            toBeUpdated: true
+          }
+        }));
+      }
+      else {
+        this.setState(prevState => ({
+          ...prevState,
+          categoryToUse: {
+            id: idx,
+            name: title,
+            toBeUpdated: true
+          }
+        }));
+      }
     }
   };
 
   componentDidUpdate() {
     const { cityToUse, categoryToUse } = this.state;
     if (
-      (cityToUse.id && cityToUse.toBeUpdated) ||
-      (categoryToUse.id && categoryToUse.toBeUpdated)
-    ) {
+      (cityToUse.toBeUpdated) || categoryToUse.toBeUpdated) {
       this.handleFilters();
     }
   }
 
   handleFilters() {
-    const { cityToUse, categoryToUse } = this.state;
+    const { cityToUse, categoryToUse, loading } = this.state;
+    if (!loading) {
+      this.setState((prevState) => ({
+        ...prevState,
+        loading: true,
+      }));
+    }
     let collec;
     if (cityToUse.id && categoryToUse.id) {
       collec = db
@@ -187,6 +257,8 @@ class Home extends Component {
       collec = db.collection('event').where('city', '==', cityToUse.id);
     } else if (categoryToUse.id) {
       collec = db.collection('event').where('category', '==', categoryToUse.id);
+    } else {
+      collec = db.collection('event');
     }
     collec
       .get()
@@ -198,8 +270,10 @@ class Home extends Component {
         this.setState(prevState => ({
           ...prevState,
           eventsList: list,
+          hasError: false,
           cityToUse: { ...prevState.cityToUse, toBeUpdated: false },
-          categoryToUse: { ...prevState.categoryToUse, toBeUpdated: false }
+          categoryToUse: { ...prevState.categoryToUse, toBeUpdated: false },
+          loading: false
         }));
       })
       .catch(err => {
@@ -214,32 +288,31 @@ class Home extends Component {
       cityList,
       organizationList
     } = this.state;
-    const selfState = this.state;
-    const dateOptions = {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    };
+    const { loading, cityToUse, categoryToUse, eventsList } = this.state;
     return (
       <React.Fragment>
-        <Spinner loading={selfState.loading} />
         <header>
           <Navbar expand="lg" variant="light">
-            <Navbar.Brand>
-              <Image id="logo-icon" src={logoIcon} fluid />
-              {'Pharos Events'}
-            </Navbar.Brand>
+            <Nav className={'mr-auto'}>
+              <Navbar.Brand>
+                <Image id="logo-icon" src={logoIcon} fluid />
+                {'Pause List'}
+              </Navbar.Brand>
+            </Nav>
             <Navbar.Text id="contact-num">
-              <a href="tel:+201224941368">Contact Us</a>
+              <a href="tel:+201224941368">
+                <i class="fa fa-mobile" aria-hidden="true" />
+              </a>
             </Navbar.Text>
           </Navbar>
         </header>
         <Container fluid={true}>
-          <section style={{ marginTop: '20px' }}>
+          <section style={{ marginTop: '20px' }} id='filters'>
             <Row>
               <Col xs={12} sm={6}>
                 <CityDropDown
-                  currentSelected={this.state.cityToUse.name}
+                  disabled={loading}
+                  currentSelected={cityToUse.name}
                   name="city"
                   list={cityList}
                   fieldTitle={'City'}
@@ -249,7 +322,8 @@ class Home extends Component {
 
               <Col xs={12} sm={6}>
                 <CategoryDropDown
-                  currentSelected={this.state.categoryToUse.name}
+                  disabled={loading}
+                  currentSelected={categoryToUse.name}
                   name="category"
                   list={categoryList}
                   fieldTitle={'Category'}
@@ -258,57 +332,96 @@ class Home extends Component {
               </Col>
             </Row>
           </section>
-          <div id="listing-cards">
-            <section>
+          <div >
+            <section id="listing-cards">
+              <Spinner loading={loading} />
               <Row>
-                {selfState.eventsList && selfState.eventsList.length ? (
-                  selfState.eventsList.map((one, index) => {
-                    return (
-                      <Col xs={12} className="card-media">
-                        <div className="card-media-body">
-                          <div className="card-media-body-top">
-                            <span className="subtle">{`${one.time}  |  `}</span>
-                            <span className="subtle">{`${new Date(
-                              one.date
-                            ).toLocaleDateString('en-EG', dateOptions)}`}</span>
+                <Col xs={12} sm={8} className="text-center">
+                  <ul className="event-list">
+                    {eventsList && eventsList.length
+                      ? eventsList.map((one, index) => {
+                        const {
+                          date,
+                          time,
+                          name,
+                          desc,
+                          city,
+                          organization,
+                          ticket_price,
+                          fb_url
+                        } = one;
+                        const dateObj = new Date(date);
+                        const month = dateObj.toLocaleDateString('en-Eg', { month: 'short' })
+                        return (
+                          <li key={index}>
+                            <time dateTime={date}>
+                              <span className="day">{dateObj.getDate()}</span>
+                              <span className="month">
+                                {month}
+                              </span>
+                              <span className="time">{time} AM</span>
+                            </time>
+                            <div className="info">
+                              <h2 className="title">{name}</h2>
+                              <p className="desc">{desc}</p>
+                              <ul className="moreInfo">
+                                <li>
+                                  <span className="fa fa-money" />
+                                  {ticket_price}
+                                </li>
+                              </ul>
+                            </div>
+                            <div className="social">
+                              <ul>
+                                {!fb_url ? null :
+                                  <li
+                                    className="facebook"
+                                    style={{ width: '33%' }}
+                                  >
+                                    <a href={fb_url} target={'_blank'}>
+                                      <span className="fa fa-facebook" />
+                                    </a>
+                                  </li>}
+                                <li
+                                  className="twitter"
+                                  style={{ width: '33%' }}
+                                >
+                                  <a
+                                    href={
+                                      ' https://maps.google.com/?q=' +
+                                      organizationList && organizationList[one.organization] && organizationList[one.organization]
+                                        .coords
+                                    }
+                                  >
+                                    <i
+                                      class="fa fa-map-marker"
+                                      aria-hidden="true"
+                                    />
+                                  </a>
+                                </li>
+                                <li
+                                  className="phone"
+                                  style={{ width: '33%' }}
+                                >
+                                  <a href="#phone">
+                                    <i
+                                      class="fa fa-phone"
+                                      aria-hidden="true"
+                                    />
+                                  </a>
+                                </li>
+                              </ul>
+                            </div>
+                          </li>
+                        );
+                      })
+                      : (<li>
+                        <h5>No Events at the moment</h5>
 
-                            <span className="eve-location">
-                              <a
-                                href={
-                                  ' https://maps.google.com/?q=' +
-                                  organizationList[one.organization].coords
-                                }
-                              >
-                                <h6>
-                                  {organizationList[one.organization].name}
-                                </h6>
-                                <img
-                                  style={{ width: '25px', float: 'right' }}
-                                  src={markerPin}
-                                  alt="pin-marker"
-                                />
-                              </a>
-                            </span>
-                          </div>
-                          <span className="card-media-body-heading eve-title">
-                            {one.name}
-                          </span>
-                          <span className="card-media-body-supporting-bottom-text subtle">
-                            #{categoryListObj[one.category]}
-                          </span>
-                          <span className="card-media-body-supporting-bottom-text subtle u-float-right">
-                            {one.ticket_price} EGP
-                          </span>
-                          <div className="card-media-body-heading eve-desc">
-                            {one.desc}
-                          </div>
-                        </div>
-                      </Col>
-                    );
-                  })
-                ) : (
-                  <h4>No events at the moment</h4>
-                )}
+                      </li>)}
+                  </ul>
+                  <Button id="load-more-btn" onClick={this.handleLoadMoreApps}>Load More</Button>
+                </Col>
               </Row>
             </section>
           </div>

@@ -69,7 +69,8 @@ function CityBranchDropDown({
   list,
   name,
   handleItem,
-  locale
+  locale,
+  clearSelection
 }) {
   return (
     <Dropdown className="city-branch-dropdown">
@@ -82,18 +83,19 @@ function CityBranchDropDown({
         {name === 'city' ? (
           <Dropdown.Item onSelect={handleItem('', '')} name={name} />
         ) : null}
+        <Dropdown.Item onSelect={handleItem(false, false)} data-clear={true} name={name} >{'Clear selection'} </Dropdown.Item>
         {list && list.length
           ? list.map(o => {
-              return (
-                <Dropdown.Item
-                  onSelect={handleItem(o.id, o.name)}
-                  name={name}
-                  eventKey={o.id}
-                >
-                  {o.name}
-                </Dropdown.Item>
-              );
-            })
+            return (
+              <Dropdown.Item
+                onSelect={handleItem(o.id, o.name)}
+                name={name}
+                eventKey={o.id}
+              >
+                {o.name}
+              </Dropdown.Item>
+            );
+          })
           : null}
       </Dropdown.Menu>
     </Dropdown>

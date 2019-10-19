@@ -1,9 +1,7 @@
 import React, { Component } from 'react';
 import Spinner from '../../../sharedComponents/Spinner';
-// import clientsApi from '../../../api/clientsApi';
 import Button from 'react-bootstrap/Button'
 import * as firebase from 'firebase';
-// import markerPin from './marker-pin.png';
 import logoIcon from './icon_small.png';
 import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
@@ -17,6 +15,8 @@ import CategoryDropDown from '../../../sharedComponents/CityBranchDropDown';
 var serviceAccount = require('../../../firebase.json');
 var app = firebase.initializeApp(serviceAccount);
 var db = app.firestore();
+const newDate = new Date();
+const isoCurrentDate = newDate.toISOString("en-Eg");    
 
 class Home extends Component {
   constructor(props) {
@@ -25,7 +25,7 @@ class Home extends Component {
       hasError: false,
       loading: true,
       loadMoreAppsButton: {
-        disable: false
+        disabled: false
       },
       eventsList: [],
       cityList: [],
@@ -66,7 +66,7 @@ class Home extends Component {
         }));
       })
       .catch(err => {
-        console.log('Error getting documents', err);
+        // console.log('Error getting documents', err);
       });
 
     organizationList
@@ -85,7 +85,7 @@ class Home extends Component {
         }));
       })
       .catch(err => {
-        console.log('Error getting documents', err);
+        // console.log('Error getting documents', err);
       });
 
     categoryList
@@ -104,12 +104,11 @@ class Home extends Component {
         }));
       })
       .catch(err => {
-        console.log('Error getting documents', err);
+        // console.log('Error getting documents', err);
       });
-
     this.eventList
       .limit(5)
-      .orderBy('date')
+      .where("date", ">=", isoCurrentDate)
       .get()
       .then(snapshot => {
         let Arr = [];
@@ -127,62 +126,55 @@ class Home extends Component {
       .catch(err => {
         this.setState(prevState => ({
           ...prevState,
-          hasError: true,
+          hasError: true
         }));
-        console.log('Error getting documents', err);
+       //  console.log("Error getting documents", err);
       });
   }
 
   handleLoadMoreApps() {
     const { lastItemId } = this.state;
-    this.eventList
-      .orderBy('date')
-      .limit(5)
-      .startAfter(lastItemId)
-      .get()
-      .then(snapshot => {
-        const Arr = [];
-        snapshot.forEach(doc => {
-          Arr.push(doc.data())
+    const newDate = new Date();
+    const isoCurrentDate = newDate.toISOString("en-Eg");
+    try {
+      this.eventList
+        .limit(5)
+        .where("date", ">=", isoCurrentDate)
+        .startAfter(lastItemId)
+        .get()
+        .then(snapshot => {
+          const Arr = [];
+          snapshot.forEach(doc => {
+            Arr.push(doc.data());
+          });
+          const joined = this.state.eventsList.concat(Arr);
+          this.setState(prevState => ({
+            ...prevState,
+            eventsList: joined,
+            loading: false,
+            hasError: false,
+            lastItemId: snapshot.docs[snapshot.docs.length - 1]
+          }));
+        })
+        .catch(err => {
+          this.setState(prevState => ({
+            ...prevState,
+            hasError: true
+          }));
+         //  console.log("Error getting documents", err);
         });
-        const joined = this.state.eventsList.concat(Arr);
+    } catch (error) {
+     //  console.log("hi", error);
         this.setState(prevState => ({
           ...prevState,
-          eventsList: joined,
-          loading: false,
-          hasError: false,
-          lastItemId: snapshot.docs[snapshot.docs.length - 1]
+          loadMoreAppsButton: {
+            ...prevState.loadMoreAppsButton,
+            disabled: true
+          }
         }));
-      })
-      .catch(err => {
-        this.setState(prevState => ({
-          ...prevState,
-          hasError: true,
-        }));
-        console.log('Error getting documents', err);
-      });
-
-    // console.log(next);
-
-    // const selfProps = this.props;
-    // if (selfProps.appsListTotalPagesNum !== selfProps.appsListCurrentPage) {
-    //   this.props.getListOfApps(this.props.appsListCurrentPage + 1);
-    // } else {
-    //   this.setState(prevState => ({
-    //     ...prevState,
-    //     loadMoreAppsButton: {
-    //       ...prevState.loadMoreAppsButton,
-    //       disable: true
-    //     }
-    //   }));
-    // }
+    }
   }
 
-  static getDerivedStateFromProps(nextProps, prevState) {
-    // if (nextProps.loading !== prevState.loading) {
-    //   return { loading: nextProps.loading };
-    // } else return null;
-  }
 
   handleDropDownFields = (idx, title) => (key, event) => {
     const fieldName = event.target.name;
@@ -233,8 +225,18 @@ class Home extends Component {
 
   componentDidUpdate() {
     const { cityToUse, categoryToUse } = this.state;
-    if (
-      (cityToUse.toBeUpdated) || categoryToUse.toBeUpdated) {
+    if (cityToUse.toBeUpdated || categoryToUse.toBeUpdated) {
+      this.setState(prevState => ({
+        ...prevState,
+        cityToUse: {
+          ...prevState.cityToUse,
+          toBeUpdated: false
+        },
+        categoryToUse: {
+          ...prevState.categoryToUse,
+          toBeUpdated: false
+        }
+      }));
       this.handleFilters();
     }
   }
@@ -259,8 +261,10 @@ class Home extends Component {
       collec = db.collection('event').where('category', '==', categoryToUse.id);
     } else {
       collec = db.collection('event');
-    }
+    }    
     collec
+      .where("date", ">=", isoCurrentDate)
+      .limit(5)
       .get()
       .then(snapshot => {
         const list = [];
@@ -270,6 +274,10 @@ class Home extends Component {
         this.setState(prevState => ({
           ...prevState,
           eventsList: list,
+          loadMoreAppsButton: {
+            ...prevState.loadMoreAppsButton,
+            disabled: false
+          },
           hasError: false,
           cityToUse: { ...prevState.cityToUse, toBeUpdated: false },
           categoryToUse: { ...prevState.categoryToUse, toBeUpdated: false },
@@ -277,26 +285,25 @@ class Home extends Component {
         }));
       })
       .catch(err => {
-        console.log('Error getting documents', err);
+        // console.log("Error getting documents", err);
       });
   }
 
   render() {
     const {
       categoryList,
-      categoryListObj,
       cityList,
       organizationList
     } = this.state;
-    const { loading, cityToUse, categoryToUse, eventsList } = this.state;
+    const { loadMoreAppsButton, loading, cityToUse, categoryToUse, eventsList = [] } = this.state;    
     return (
       <React.Fragment>
         <header>
           <Navbar expand="lg" variant="light">
-            <Nav className={'mr-auto'}>
+            <Nav className={"mr-auto"}>
               <Navbar.Brand>
                 <Image id="logo-icon" src={logoIcon} fluid />
-                {'Pause List'}
+                {"Pause List"}
               </Navbar.Brand>
             </Nav>
             <Navbar.Text id="contact-num">
@@ -307,7 +314,7 @@ class Home extends Component {
           </Navbar>
         </header>
         <Container fluid={true}>
-          <section style={{ marginTop: '20px' }} id='filters'>
+          <section style={{ marginTop: "20px" }} id="filters">
             <Row>
               <Col xs={12} sm={6}>
                 <CityDropDown
@@ -315,7 +322,7 @@ class Home extends Component {
                   currentSelected={cityToUse.name}
                   name="city"
                   list={cityList}
-                  fieldTitle={'City'}
+                  fieldTitle={"City"}
                   handleItem={this.handleDropDownFields}
                 />
               </Col>
@@ -326,39 +333,37 @@ class Home extends Component {
                   currentSelected={categoryToUse.name}
                   name="category"
                   list={categoryList}
-                  fieldTitle={'Category'}
+                  fieldTitle={"Category"}
                   handleItem={this.handleDropDownFields}
                 />
               </Col>
             </Row>
           </section>
-          <div >
+          <div>
             <section id="listing-cards">
               <Spinner loading={loading} />
               <Row>
                 <Col xs={12} sm={8} className="text-center">
                   <ul className="event-list">
-                    {eventsList && eventsList.length
-                      ? eventsList.map((one, index) => {
+                    {eventsList && eventsList.length ? (
+                      eventsList.map((one, index) => {
                         const {
                           date,
                           time,
                           name,
                           desc,
-                          city,
-                          organization,
                           ticket_price,
                           fb_url
                         } = one;
                         const dateObj = new Date(date);
-                        const month = dateObj.toLocaleDateString('en-Eg', { month: 'short' })
+                        const month = dateObj.toLocaleDateString("en-Eg", {
+                          month: "short"
+                        });
                         return (
                           <li key={index}>
                             <time dateTime={date}>
                               <span className="day">{dateObj.getDate()}</span>
-                              <span className="month">
-                                {month}
-                              </span>
+                              <span className="month">{month}</span>
                               <span className="time">{time} AM</span>
                             </time>
                             <div className="info">
@@ -373,24 +378,26 @@ class Home extends Component {
                             </div>
                             <div className="social">
                               <ul>
-                                {!fb_url ? null :
+                                {!fb_url ? null : (
                                   <li
                                     className="facebook"
-                                    style={{ width: '33%' }}
+                                    style={{ width: "33%" }}
                                   >
-                                    <a href={fb_url} target={'_blank'}>
+                                    <a href={fb_url} target={"_blank"}>
                                       <span className="fa fa-facebook" />
                                     </a>
-                                  </li>}
+                                  </li>
+                                )}
                                 <li
                                   className="twitter"
-                                  style={{ width: '33%' }}
+                                  style={{ width: "33%" }}
                                 >
                                   <a
                                     href={
-                                      ' https://maps.google.com/?q=' +
-                                      organizationList && organizationList[one.organization] && organizationList[one.organization]
-                                        .coords
+                                      " https://maps.google.com/?q=" +
+                                        organizationList &&
+                                      organizationList[one.organization] &&
+                                      organizationList[one.organization].coords
                                     }
                                   >
                                     <i
@@ -399,15 +406,9 @@ class Home extends Component {
                                     />
                                   </a>
                                 </li>
-                                <li
-                                  className="phone"
-                                  style={{ width: '33%' }}
-                                >
+                                <li className="phone" style={{ width: "33%" }}>
                                   <a href="#phone">
-                                    <i
-                                      class="fa fa-phone"
-                                      aria-hidden="true"
-                                    />
+                                    <i class="fa fa-phone" aria-hidden="true" />
                                   </a>
                                 </li>
                               </ul>
@@ -415,12 +416,19 @@ class Home extends Component {
                           </li>
                         );
                       })
-                      : (<li>
+                    ) : (
+                      <li>
                         <h5>No Events at the moment</h5>
-
-                      </li>)}
+                      </li>
+                    )}
                   </ul>
-                  <Button id="load-more-btn" onClick={this.handleLoadMoreApps}>Load More</Button>
+                  <Button
+                    disabled={loadMoreAppsButton.disabled}
+                    id="load-more-btn"
+                    onClick={this.handleLoadMoreApps}
+                  >
+                    Load More
+                  </Button>
                 </Col>
               </Row>
             </section>

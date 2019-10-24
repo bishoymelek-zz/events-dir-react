@@ -367,7 +367,12 @@ class Home extends Component {
                             </time>
                             <div className="info">
                               <h2 className="title">{name}</h2>
-                              <p className="desc">{desc}</p>
+                              <p
+                                className="desc"
+                                dangerouslySetInnerHTML={{
+                                  __html:desc
+                                }}
+                              ></p>
                               <ul className="moreInfo">
                                 <li>
                                   <span className="fa fa-money" />

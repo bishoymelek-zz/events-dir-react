@@ -7,9 +7,10 @@ import { Provider } from 'react-redux';
 // Routing (react-router-dom)
 import { BrowserRouter } from 'react-router-dom';
 import store from './store-redux';
+import "bootstrap/dist/css/bootstrap.css";
+
 import './index.scss';
 
-import 'bootstrap/dist/css/bootstrap.css';
 import App from './App';
 ReactDOM.render(
   <BrowserRouter>

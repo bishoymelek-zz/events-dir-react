@@ -1,0 +1,26 @@
+// custom scss
+
+@font-face {
+    font-family: "JF Flat Regular";
+    src: url('./font/JF-Flat-regular.eot'),
+    url('./font/JF-Flat-regular.woff') format('woff'),
+    url('./font/JF-Flat-regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  line-height: 1.5rem;
+}
+
+html,
+body {
+    height: 100%;
+    margin: 0;
+    font-family: 'JF Flat Regular';
+    font-weight:normal;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}

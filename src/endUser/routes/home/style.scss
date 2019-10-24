@@ -1,10 +1,6 @@
 @import url('http://fonts.googleapis.com/css?family=Lato:100,300,400,700,900,400italic');
 @import url('//netdna.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.css');
 
-@font-face {
-  font-family: 'Sofia';
-  src: url('./Sofia-Regular.otf');
-}
 
 $primary: #123f54;
 $primary_third: #5389a8;
@@ -67,7 +63,6 @@ $secondary: black;
 
   .event-list {
     list-style: none;
-    font-family: 'Lato', sans-serif;
     margin: 0px;
     padding: 0px;
   }
@@ -280,7 +275,6 @@ nav {
 
   span {
     color: white !important;
-    font-family: 'Sofia';
     //font-style: italic;
     font-size: 30px !important;
   }

@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import Spinner from '../../../sharedComponents/Spinner';
 import Button from 'react-bootstrap/Button'
 import * as firebase from 'firebase';
-import logoIcon from './icon_small.png';
+import logoIcon from './Logo.png';
 import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
@@ -303,7 +303,6 @@ class Home extends Component {
             <Nav className={"mr-auto"}>
               <Navbar.Brand>
                 <Image id="logo-icon" src={logoIcon} fluid />
-                {"Pause List"}
               </Navbar.Brand>
             </Nav>
             <Navbar.Text id="contact-num">
